@@ -1,8 +1,8 @@
 ---
 title: Exegetic
 emoji: 📜
-colorFrom: amber
-colorTo: orange
+colorFrom: yellow
+colorTo: red
 sdk: static
 pinned: false
 ---

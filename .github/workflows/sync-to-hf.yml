@@ -25,7 +25,8 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git remote add hf https://overthelex:${HF_TOKEN}@huggingface.co/spaces/Anamavajra-Labs/exegetic-uk || true
+          git remote set-url hf https://overthelex:${HF_TOKEN}@huggingface.co/spaces/Anamavajra-Labs/exegetic-uk 2>/dev/null || \
+            git remote add hf https://overthelex:${HF_TOKEN}@huggingface.co/spaces/Anamavajra-Labs/exegetic-uk
           git push hf main --force
 
       - name: Health check
