@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exegetic — AI-Powered Exegetical Generation</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;font-family:Palatino,serif;color:#e0d6c8;overflow-x:hidden;position:relative}
+
+.sky{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
+.sky canvas{width:100%;height:100%}
+
+.hero{min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;z-index:2}
+.hero-inner{text-align:center;max-width:680px;padding:2rem}
+h1{font-size:2.6rem;font-weight:400;letter-spacing:.15em;margin-bottom:.4rem;color:#d4a574;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.subtitle{font-size:1.15rem;color:#c0a080;margin-bottom:1.5rem;font-style:italic;text-shadow:0 1px 10px rgba(0,0,0,.4)}
+.tagline{font-size:.95rem;line-height:1.7;color:#a89888;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+
+.chat-section{position:relative;z-index:2;max-width:780px;margin:0 auto;padding:0 1.5rem 4rem}
+.chat-label{text-align:center;font-size:.8rem;letter-spacing:.25em;text-transform:uppercase;color:#6a5a4a;margin-bottom:1.5rem;padding-top:1rem}
+
+.chat-window{background:rgba(12,12,24,.65);border:1px solid rgba(212,165,116,.12);border-radius:12px;padding:1.5rem;backdrop-filter:blur(12px);min-height:280px}
+
+.msg{margin-bottom:1.2rem;animation:fadeIn .4s ease}
+.msg-user{display:flex;justify-content:flex-end}
+.msg-ai{display:flex;justify-content:flex-start}
+
+.bubble{max-width:88%;padding:.8rem 1.1rem;border-radius:10px;font-size:.88rem;line-height:1.65}
+.bubble-user{background:rgba(212,165,116,.15);border:1px solid rgba(212,165,116,.2);color:#d4c0a0;border-bottom-right-radius:3px}
+.bubble-ai{background:rgba(80,70,60,.2);border:1px solid rgba(120,100,80,.15);color:#c8b8a0;border-bottom-left-radius:3px}
+
+.bubble .term{color:#d4a574;font-weight:600}
+.bubble .devanagari{color:#c09060;font-size:.95em}
+.bubble .label{font-size:.7rem;text-transform:uppercase;letter-spacing:.15em;color:#7a6a5a;margin-bottom:.3rem;display:block}
+.bubble .highlight{color:#d4a574}
+
+.typing{display:inline-flex;gap:4px;padding:4px 0}
+.typing span{width:5px;height:5px;background:#8a7a6a;border-radius:50%;animation:typingDot 1.2s ease-in-out infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+
+.bubble a{color:#d4a574;text-decoration:none;border-bottom:1px solid rgba(212,165,116,.3);transition:border-color .2s}
+.bubble a:hover{border-color:#d4a574}
+.result-card{background:rgba(212,165,116,.06);border:1px solid rgba(212,165,116,.12);border-radius:6px;padding:.6rem .8rem;margin:.5rem 0;font-size:.84rem}
+.result-card .src-tag{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:#8a7a6a;margin-bottom:.2rem;display:block}
+.result-card .snippet{color:#b8a898;line-height:1.5}
+.result-card .snippet em{color:#d4a574;font-style:normal;font-weight:600}
+.result-count{font-size:.78rem;color:#8a7a6a;margin-bottom:.4rem}
+
+@keyframes typingDot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.cursor{display:inline-block;width:2px;height:1em;background:#d4a574;animation:blink .8s step-end infinite;vertical-align:text-bottom;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+
+.status-bar{text-align:center;padding:2rem 0;position:relative;z-index:2}
+.status{display:inline-block;padding:.5rem 1.5rem;border:1px solid rgba(212,165,116,.2);border-radius:2px;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#6a5a4a;backdrop-filter:blur(4px);background:rgba(0,0,0,.15)}
+.dot{display:inline-block;width:5px;height:5px;background:#d4a574;border-radius:50%;margin-right:6px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="sky"><canvas id="c"></canvas></div>
+
+<div class="hero">
+<div class="hero-inner">
+<h1>Exegetic</h1>
+<p class="subtitle">Information-Expanding Text Generation</p>
+<p class="tagline">Recovering implicit knowledge from terse sacred texts through AI-assisted exegesis</p>
+</div>
+</div>
+
+<div class="chat-section">
+<div class="chat-label">Live Exegetical Generation Demo</div>
+<div class="chat-window" id="chat"></div>
+</div>
+
+<div class="status-bar">
+<div class="status"><span class="dot"></span>Under Construction</div>
+</div>
+
+<script>
+const pairs = [
+  {
+    type: 'ocr',
+    source: 'अग्राह्यः शाश्वतः कृष्णो लोहिताक्षः प्रतर्दनः।\nप्रभूतस्त्रिककुब्धाम पवित्रं मङ्गलं परम्॥',
+    label: 'Mahābhārata — Divine Epithets (OCR-extracted)',
+    exegesis: [
+      { t: 'term', text: 'अग्राह्यः (agrāhyaḥ) — "not-graspable; imperceptible"' },
+      { t: 'body', text: 'a- (negation) + grāhya (graspable, from √grah). Denotes that which eludes sense-perception and conceptual appropriation. In philosophical contexts, this characterizes what escapes conceptual determination.' },
+      { t: 'term', text: 'शाश्वतः (śāśvataḥ) — "eternal; perpetual"' },
+      { t: 'body', text: 'In Buddhist discourse, śāśvata-dṛṣṭi (eternalism) is one of two extremes rejected by the Middle Way. Here however it functions as positive valorization — the unchanging ground of manifestation.' },
+      { t: 'term', text: 'Paradox of Transcendence & Immanence' },
+      { t: 'body', text: 'The verse stacks contradictory predicates intentionally: imperceptible (agrāhya) yet designated by names and forms (kṛṣṇa, lohitākṣa). This reflects the classical non-dualist problematic — how can the Absolute be simultaneously beyond all determination yet the subject of devotion and naming?' },
+    ]
+  },
+  {
+    type: 'asr',
+    source: 'mantra (मन्त्र)',
+    label: 'Kubjikā Lecture — Term Explanation (ASR-transcribed)',
+    exegesis: [
+      { t: 'body', text: 'Notice that in this tradition, the tantra is very keen to maintain the yogic path along with the mantra. There\'s a lot of discussion of mantra (मन्त्र). There are many mantras, just like in other tantras or other schools.' },
+      { t: 'body', text: 'But it is also very rich in yogic practice and very rich in understanding ritual, mantra — all these outer things — in terms of yoga. That\'s why I was drawn to it, and the goddess is very powerful.' },
+      { t: 'term', text: 'Expansion ratio: 45.6×' },
+      { t: 'body', text: 'A single Sanskrit term unfolds into extended discourse covering the term\'s role within the Kubjikā tradition, its relationship to yogic practice, and the distinctive integration of mantra and yoga that characterizes the Paścimāmnāya school.' },
+    ]
+  },
+  {
+    type: 'ocr',
+    source: 'उत्पन्नः स जरत्कारुस्तपस्युग्रे रतो द्विजः।\nतस्यैष भगिनी काले जरत्कारुं प्रयच्छतु॥',
+    label: 'Āstīka Parvan — Jaratkāru (OCR-extracted)',
+    exegesis: [
+      { t: 'body', text: 'This verse belongs to the Āstīka Parvan of the Ādi Parva of the Mahābhārata. The verse is a directive speech: "He, the brahmin Jaratkāru, devoted to fierce austerities, has been born. Let his sister be given to him at the proper time."' },
+      { t: 'term', text: 'Jaratkāru (जरत्कारु) — Etymology' },
+      { t: 'body', text: 'jarat (wasting away, aging) + kāru (one who performs) — "one whose body wastes away through austerity." The name encodes a soteriological program: the sage is defined by tapas as an instrument of bodily mortification.' },
+      { t: 'term', text: 'The Coincidence of Names' },
+      { t: 'body', text: 'Both the sage and the maiden share the same name. In Indian narrative theology, shared names indicate dharmic resonance — ontological kinship beyond biological relation. Their union is cosmically ordained, a niyati embedded in the structure of dharma itself.' },
+    ]
+  },
+  {
+    type: 'search',
+    source: 'कुब्जिका',
+    label: 'Corpus Search Query',
+    exegesis: [
+      { t: 'html', text: '<span class="result-count">Found <strong>14 occurrences</strong> of <em>कुब्जिका</em> (Kubjikā) across 3 source types</span>' },
+      { t: 'html', text: '<div class="result-card"><span class="src-tag">📖 OCR — Tantrāloka Vol. 5, p. 247</span><span class="snippet">"...the tradition of the <em>Kubjikā</em> (कुब्जिका) and Tantras considers itself to be the best, because it alone contains the complete teaching of both yoga and mantra..."</span><br><a href="#">→ tantraloka-dyczkowski-raw/vol5/page_247.md</a></div>' },
+      { t: 'html', text: '<div class="result-card"><span class="src-tag">🎙️ ASR — Lecture 08: Kubjikā & Kaulism</span><span class="snippet">"...Tripura as Kāmeśvarī (कामेश्वरी) is one of the faces of <em>Kubjikā</em> (कुब्जिका). The goddess manifests in four sacred seats (pīṭha), each with its own oral tradition..."</span><br><a href="#">→ lectures/lecture_08_kubjika_kaulism.json#seg_42</a></div>' },
+      { t: 'html', text: '<div class="result-card"><span class="src-tag">🎙️ ASR — Lecture 12: Paścimāmnāya Lineage</span><span class="snippet">"...<em>Kubjikā</em> is the Crooked One — the name itself encodes the non-linear, spiraling nature of kuṇḍalinī. She is not Tripurasundarī, not Kālī, but something older, from the Western Transmission..."</span><br><a href="#">→ lectures/lecture_12_pascimannaya.json#seg_18</a></div>' },
+      { t: 'html', text: '<div class="result-card"><span class="src-tag">📖 OCR — Kubjikāmata Tantra, Ch. 3</span><span class="snippet">"...the root text of the <em>Kubjikā</em> tradition, the Kubjikāmata (कुब्जिकामत), establishes the sixfold ritual framework (ṣaḍaṅga) that distinguishes this school from other Kaula systems..."</span><br><a href="#">→ tantraloka-dyczkowski-raw/kubjikamata/ch3_folio_12r.md</a></div>' },
+      { t: 'body', text: '+ 10 more results across Tantrāloka volumes 1, 3, 7, 9 and Lectures 3, 5, 14, 19, 22. All occurrences cluster in the Paścimāmnāya (Western Transmission) context.' },
+    ]
+  }
+];
+
+const chat = document.getElementById('chat');
+let pairIdx = 0;
+
+function createMsg(side, html) {
+  const msg = document.createElement('div');
+  msg.className = `msg msg-${side}`;
+  const bubble = document.createElement('div');
+  bubble.className = `bubble bubble-${side}`;
+  bubble.innerHTML = html;
+  msg.appendChild(bubble);
+  return msg;
+}
+
+function typeText(el, text, speed) {
+  return new Promise(resolve => {
+    let i = 0;
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    el.appendChild(cursor);
+    function tick() {
+      if (i < text.length) {
+        cursor.before(document.createTextNode(text[i]));
+        i++;
+        chat.scrollTop = chat.scrollHeight;
+        setTimeout(tick, speed + Math.random() * speed * 0.5);
+      } else {
+        cursor.remove();
+        resolve();
+      }
+    }
+    tick();
+  });
+}
+
+function showTyping() {
+  const msg = createMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+  return msg;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runPair(pair) {
+  // Source message
+  const sourceLines = pair.source.split('\n');
+  let sourceHtml = `<span class="label">${pair.label}</span>`;
+  if (pair.type === 'search') {
+    sourceHtml += `<span style="font-size:.8rem;color:#a89888;display:block;margin-bottom:.3rem">Search corpus for:</span>`;
+    sourceHtml += `<span class="devanagari" style="font-size:1.3rem">${pair.source}</span>`;
+  } else {
+    sourceHtml += sourceLines.map(l => `<span class="devanagari">${l}</span>`).join('<br>');
+  }
+  const userMsg = createMsg('user', sourceHtml);
+  chat.appendChild(userMsg);
+  chat.scrollTop = chat.scrollHeight;
+
+  await sleep(800);
+
+  // AI typing indicator
+  const typingMsg = showTyping();
+  await sleep(1200);
+  typingMsg.remove();
+
+  // AI response - type out each segment
+  for (const seg of pair.exegesis) {
+    const aiMsg = createMsg('ai', '');
+    const bubble = aiMsg.querySelector('.bubble');
+
+    if (seg.t === 'html') {
+      bubble.innerHTML = seg.text;
+      bubble.style.opacity = '0';
+      bubble.style.transform = 'translateY(6px)';
+      chat.appendChild(aiMsg);
+      await sleep(50);
+      bubble.style.transition = 'opacity .4s, transform .4s';
+      bubble.style.opacity = '1';
+      bubble.style.transform = 'translateY(0)';
+    } else if (seg.t === 'term') {
+      const termEl = document.createElement('span');
+      termEl.className = 'highlight';
+      bubble.appendChild(termEl);
+      chat.appendChild(aiMsg);
+      await typeText(termEl, seg.text, 18);
+    } else {
+      chat.appendChild(aiMsg);
+      await typeText(bubble, seg.text, 12);
+    }
+
+    chat.scrollTop = chat.scrollHeight;
+    await sleep(seg.t === 'html' ? 600 : 400);
+  }
+
+  await sleep(3000);
+}
+
+async function runLoop() {
+  while (true) {
+    const pair = pairs[pairIdx % pairs.length];
+    await runPair(pair);
+    pairIdx++;
+    await sleep(2000);
+    // Clear chat for next pair
+    chat.innerHTML = '';
+    await sleep(500);
+  }
+}
+
+runLoop();
+
+// Sky animation
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const CYCLE = 10000;
+
+function resize() { cv.width = window.innerWidth; cv.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lc(c1, c2, t) { return [lerp(c1[0],c2[0],t), lerp(c1[1],c2[1],t), lerp(c1[2],c2[2],t)]; }
+function rgb(c) { return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`; }
+
+const nT=[12,12,30], nB=[18,18,40], dT=[35,25,60], dB=[180,90,50], pT=[55,40,75], pB=[220,130,60];
+
+function draw(ts) {
+  const w=cv.width, h=cv.height, t=(ts%CYCLE)/CYCLE;
+  const hY=h*0.72, sR=Math.min(w,h)*0.06;
+  const sX=w*0.2+w*0.6*t;
+  const sPO=sR*0.7;
+  const sY=hY+sPO+(4*sPO+sR*3)*Math.pow(2*t-1,2);
+  const dH=sY-hY;
+  const lT=Math.max(0,1-dH/(sR*6));
+  const lI=Math.pow(lT,1.5);
+
+  const sTop=lc(nT,lI>.5?pT:dT,lI), sBot=lc(nB,lI>.5?pB:dB,lI);
+  const g=ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,rgb(sTop)); g.addColorStop(.7,rgb(sBot)); g.addColorStop(1,rgb(lc(sBot,[10,10,20],.3)));
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+
+  if(lI>.01){
+    const gR=sR*(4+lI*4);
+    const gg=ctx.createRadialGradient(sX,Math.max(sY,hY),0,sX,Math.max(sY,hY),gR);
+    const gA=lI*.4;
+    gg.addColorStop(0,`rgba(255,160,50,${gA})`); gg.addColorStop(.3,`rgba(255,100,30,${gA*.5})`);
+    gg.addColorStop(.6,`rgba(200,60,40,${gA*.2})`); gg.addColorStop(1,'rgba(200,60,40,0)');
+    ctx.fillStyle=gg; ctx.fillRect(0,0,w,h);
+    const bg=ctx.createLinearGradient(0,hY-sR*3,0,hY+sR*2);
+    const bA=lI*.35;
+    bg.addColorStop(0,'rgba(255,120,40,0)'); bg.addColorStop(.4,`rgba(255,140,50,${bA})`);
+    bg.addColorStop(.6,`rgba(255,100,40,${bA*.8})`); bg.addColorStop(1,'rgba(255,80,30,0)');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
+  }
+
+  if(sY<hY+sR){
+    ctx.save(); ctx.beginPath(); ctx.rect(0,0,w,hY); ctx.clip();
+    const sg=ctx.createRadialGradient(sX,sY,0,sX,sY,sR);
+    sg.addColorStop(0,'rgba(255,220,150,.95)'); sg.addColorStop(.6,'rgba(255,160,60,.85)'); sg.addColorStop(1,'rgba(255,100,30,0)');
+    ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(sX,sY,sR,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  ctx.fillStyle='rgb(8,8,16)'; ctx.fillRect(0,hY,w,h-hY);
+  const lg=ctx.createLinearGradient(0,hY,0,hY+40);
+  lg.addColorStop(0,`rgba(${30+lI*40|0},${15+lI*20|0},${20+lI*15|0},1)`); lg.addColorStop(1,'rgb(8,8,16)');
+  ctx.fillStyle=lg; ctx.fillRect(0,hY,w,40);
+
+  if(lI<.6){
+    const sA=(1-lI/.6)*.7;
+    ctx.fillStyle=`rgba(255,255,255,${sA})`;
+    for(let i=0;i<80;i++){
+      const sx=((i*7919+1)%1000)/1000*w, sy=((i*6271+3)%1000)/1000*hY*.9;
+      const sr=((i*3571)%3+1)*.5, fl=.5+.5*Math.sin(ts/1000+i*2.3);
+      ctx.globalAlpha=sA*(.3+.7*fl);
+      ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
