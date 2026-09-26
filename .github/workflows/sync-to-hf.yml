@@ -25,9 +25,13 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git remote set-url hf https://overthelex:${HF_TOKEN}@huggingface.co/spaces/Anamavajra-Labs/exegetic-uk 2>/dev/null || \
-            git remote add hf https://overthelex:${HF_TOKEN}@huggingface.co/spaces/Anamavajra-Labs/exegetic-uk
-          git push hf main --force
+          # Older runs stored the token in an `hf` remote URL inside .git/config on the runner.
+          git remote remove hf 2>/dev/null || true
+          # Pass credentials for this push only, so the token is never written to disk.
+          AUTH=$(printf 'overthelex:%s' "$HF_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$AUTH"
+          git -c http.extraHeader="Authorization: Basic $AUTH" \
+            push https://huggingface.co/spaces/Anamavajra-Labs/exegetic-uk HEAD:main --force
 
       - name: Health check
         run: |
